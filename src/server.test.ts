@@ -5,6 +5,7 @@ import {
   findSignatureByEpoch,
   getAllSignatures,
   insertSignature,
+  removeSignatureByEpoch,
   Signature,
   updateSignatureByEpoch,
 } from "./signature/model";
@@ -80,7 +81,7 @@ describe("GET /signatures/:epoch", () => {
   });
 });
 
-describe.skip("PUT /signatures/:epoch", () => {
+describe("PUT /signatures/:epoch", () => {
   const passingEpochId = 1614096121305;
   const passingSignature = {
     epochId: passingEpochId,
@@ -188,5 +189,40 @@ describe("POST /signatures", () => {
     expect(response.body.status).toBe("fail");
     expect(response.body.data.name).toMatch(/string value/);
     expect(response.body.data.name).toMatch(/required/);
+  });
+});
+
+describe("DELETE /signatures/:epochID", () => {
+  const passingEpochId = 1614096121305;
+  const passingSignature = {
+    epochId: passingEpochId,
+    name: "Indiana Jones",
+  };
+
+  beforeEach(() => {
+    resetMockFor(removeSignatureByEpoch, (epochId: number): boolean => {
+      // mock implementation:
+      // return a signature for a specific epochId, otherwise null
+      return (epochId === passingSignature.epochId);
+    });
+  });
+
+  it("calls removeSigntaureByEpoch with the epochID passed in the body", async () => {
+    await supertest(app).delete("/signatures/1614096121305");
+    expect(removeSignatureByEpoch).toHaveBeenCalledWith(1614096121305);
+  });
+
+  test("when given appropriate epochID, it responds with a status of 200, and a status of success", async () => {
+    const response = await supertest(app).delete("/signatures/1614096121305");
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe("success");
+  });
+
+  test("when not provided with a valid epochID in the endpoint, it responds with a status of 404, a status of fail and signature in data", async () => {
+    const response = await supertest(app).delete("/signatures/161409612130");
+    expect(response.status).toBe(404);
+    expect(response.body.status).toBe("fail");
+    expect(response.body.data).toHaveProperty( 'epochId' );
+    expect(response.body.data.epochId).toMatch(/epoch/);
   });
 });
